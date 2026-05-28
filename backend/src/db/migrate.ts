@@ -2,7 +2,6 @@ import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
-import bcrypt from 'bcrypt';
 
 dotenv.config();
 
@@ -18,6 +17,14 @@ async function migrate() {
 
     await client.query(schema);
     console.log('✓ Database schema created successfully');
+
+    // Load and execute init-db.sql for demo data
+    const initDbPath = path.join(path.dirname(new URL(import.meta.url).pathname), '../../init-db.sql');
+    if (fs.existsSync(initDbPath)) {
+      const initDb = fs.readFileSync(initDbPath, 'utf-8');
+      await client.query(initDb);
+      console.log('✓ Demo data inserted');
+    }
 
     // Insert default error templates
     const templates = [
