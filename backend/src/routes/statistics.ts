@@ -28,8 +28,8 @@ router.get('/', async (req, res) => {
       `SELECT priority, COUNT(*) as count FROM tickets GROUP BY priority`
     );
 
-    const tickets_by_status = {};
-    const tickets_by_priority = {};
+    const tickets_by_status: Record<string, number> = {};
+    const tickets_by_priority: Record<string, number> = {};
 
     statusResult.rows.forEach((row: any) => {
       tickets_by_status[row.status] = parseInt(row.count);
