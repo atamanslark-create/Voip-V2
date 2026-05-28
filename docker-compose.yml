@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: voip_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-voip_password}
+      POSTGRES_DB: voip_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voip_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - voip-network
+
+  backend:
+    build: .
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://voip_user:${DB_PASSWORD:-voip_password}@postgres:5432/voip_db
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      BOT_API_URL: http://bot:5001
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+    ports:
+      - "5000:5000"
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - voip-network
+    restart: unless-stopped
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      DATABASE_URL: postgresql://voip_user:${DB_PASSWORD:-voip_password}@postgres:5432/voip_db
+      API_URL: http://backend:5000/api
+      BOT_API_PORT: 5001
+    ports:
+      - "5001:5001"
+    depends_on:
+      - postgres
+      - backend
+    networks:
+      - voip-network
+    restart: unless-stopped
+
+networks:
+  voip-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
