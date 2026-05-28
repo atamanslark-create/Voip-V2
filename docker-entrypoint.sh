@@ -13,9 +13,8 @@ echo "🚀 Starting application..."
 node dist/server.js &
 SERVER_PID=$!
 
-echo "📦 Serving frontend..."
-cd /app/frontend
-python3 -m http.server 3000 &
+echo "📦 Serving frontend on port 3000..."
+serve -s /app/frontend/dist -l 3000 &
 FRONTEND_PID=$!
 
 wait $SERVER_PID $FRONTEND_PID
