@@ -2,6 +2,7 @@ import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
+import bcrypt from 'bcrypt';
 
 dotenv.config();
 
@@ -37,6 +38,39 @@ async function migrate() {
       );
     }
     console.log('✓ Default error templates inserted');
+
+    // Create demo users with bcrypt hashed password
+    const password_hash = await bcrypt.hash('password', 10);
+
+    const users = [
+      { email: 'admin@example.com', full_name: 'Administrator', role: 'admin' },
+      { email: 'manager@example.com', full_name: 'Demo Manager', role: 'manager' },
+      { email: 'telephonist@example.com', full_name: 'Demo Telephonist', role: 'telephonist' },
+    ];
+
+    for (const user of users) {
+      await client.query(
+        'INSERT INTO users (email, password_hash, full_name, role) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+        [user.email, password_hash, user.full_name, user.role]
+      );
+    }
+    console.log('✓ Demo users created');
+
+    // Create demo SIP lines
+    const lines = [
+      { name: 'Line 1', number: '101', color: '#ef4444', description: 'Main reception line' },
+      { name: 'Line 2', number: '102', color: '#f97316', description: 'Support line' },
+      { name: 'Line 3', number: '103', color: '#eab308', description: 'Sales line' },
+      { name: 'Line 4', number: '104', color: '#22c55e', description: 'Manager line' },
+    ];
+
+    for (const line of lines) {
+      await client.query(
+        'INSERT INTO sip_lines (name, number, color, description) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
+        [line.name, line.number, line.color, line.description]
+      );
+    }
+    console.log('✓ Demo SIP lines created');
 
   } catch (error) {
     console.error('Migration failed:', error);
