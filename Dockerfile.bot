@@ -2,15 +2,17 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for asyncpg and psycopg2
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
+    build-essential \
+    libpq-dev \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
+# Upgrade pip and install requirements
 COPY bot/requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt || pip install --no-cache-dir aiogram aiohttp asyncpg python-dotenv psycopg2-binary
 
 COPY bot/src ./src
 
