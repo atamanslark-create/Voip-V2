@@ -1,6 +1,10 @@
-import asyncpg
 import os
 from dotenv import load_dotenv
+
+try:
+    import asyncpg
+except ImportError:
+    asyncpg = None
 
 load_dotenv()
 
@@ -9,15 +13,20 @@ pool = None
 
 async def init_db():
     global pool
+    if asyncpg is None:
+        print("Warning: asyncpg not installed, database features disabled")
+        return None
     pool = await asyncpg.create_pool(DATABASE_URL)
     return pool
 
 async def close_db():
     global pool
-    if pool:
+    if pool and asyncpg:
         await pool.close()
 
 async def get_user_by_telegram_id(telegram_id: int):
+    if not pool or not asyncpg:
+        return None
     async with pool.acquire() as conn:
         return await conn.fetchrow(
             'SELECT id, email, full_name, role FROM users WHERE telegram_chat_id = $1',
@@ -25,6 +34,8 @@ async def get_user_by_telegram_id(telegram_id: int):
         )
 
 async def set_user_telegram_id(user_id: str, telegram_id: int):
+    if not pool or not asyncpg:
+        return
     async with pool.acquire() as conn:
         await conn.execute(
             'UPDATE users SET telegram_chat_id = $1 WHERE id = $2',
@@ -32,6 +43,8 @@ async def set_user_telegram_id(user_id: str, telegram_id: int):
         )
 
 async def get_telephonist_tickets(user_id: str):
+    if not pool or not asyncpg:
+        return []
     async with pool.acquire() as conn:
         return await conn.fetch(
             '''SELECT t.*, sl.name as sip_line_name, sl.number as sip_number, et.name as error_name
@@ -44,6 +57,8 @@ async def get_telephonist_tickets(user_id: str):
         )
 
 async def get_all_telephonists():
+    if not pool or not asyncpg:
+        return []
     async with pool.acquire() as conn:
         return await conn.fetch(
             'SELECT id, telegram_chat_id FROM users WHERE role = $1 AND telegram_chat_id IS NOT NULL',
@@ -51,6 +66,8 @@ async def get_all_telephonists():
         )
 
 async def get_all_managers():
+    if not pool or not asyncpg:
+        return []
     async with pool.acquire() as conn:
         return await conn.fetch(
             'SELECT id, telegram_chat_id FROM users WHERE role = $1 AND telegram_chat_id IS NOT NULL',
